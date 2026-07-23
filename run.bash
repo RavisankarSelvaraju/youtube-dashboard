@@ -1,23 +1,26 @@
-#!/bin/sh
+#!/bin/bash
 
-# Ensure screen is installed
-if ! command -v screen >/dev/null 2>&1; then
-  echo "screen is not installed. Installing..."
-  if command -v apt-get >/dev/null 2>&1; then
-    sudo apt-get update && sudo apt-get install -y screen
-  elif command -v yum >/dev/null 2>&1; then
-    sudo yum install -y screen
-  else
-    echo "Could not auto-install screen. Please install screen manually."
-    exit 1
-  fi
-fi
+SESSION="youtube_tracker"
 
-# Run python script inside a detached screen session
 if [ -f ./*/bin/activate ]; then
-  screen -dmS "yt_tracker" sh -c "source ./*/bin/activate && python3 run.py"
-  echo "App started in background screen session named 'yt_tracker'."
-  echo "Use 'screen -r yt_tracker' to view logs or attach."
+    # Activate the virtual environment
+    source ./*/bin/activate
+
+    # Use tmux if it's installed
+    if command -v tmux >/dev/null 2>&1; then
+        # Don't start another instance if it's already running
+        if tmux has-session -t "$SESSION" 2>/dev/null; then
+            echo "Session '$SESSION' is already running."
+            exit 0
+        fi
+
+        tmux new-session -d -s "$SESSION" "python3 run.py"
+        echo "Started in tmux session '$SESSION'."
+        echo "Attach with: tmux attach -t $SESSION"
+    else
+        echo "tmux not found. Running in the current terminal..."
+        exec python3 run.py
+    fi
 else
-  echo "Virtual env does not exist. Run \`bash setup.bash\` first."
+    echo "Virtual environment does not exist. Run \`bash setup.bash\` first."
 fi
