@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Subscription Tracker</title>
+    <!-- Google Fonts & FontAwesome Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fa-brands fa-youtube logo-icon"></i>
+                    <span>YouTube Dashboard</span>
+                </div>
+            </div>
+
+            <!-- Add Channel Form -->
+            <div class="subscribe-box">
+                <h3>Subscribe to Channel</h3>
+                <form id="subscribe-form" onsubmit="subscribeChannel(event)">
+                    <div class="input-group">
+                        <i class="fa-solid fa-link input-icon"></i>
+                        <input type="text" id="channel-input" placeholder="Channel URL, Handle, or ID" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fa-solid fa-plus"></i> Subscribe
+                    </button>
+                </form>
+            </div>
+
+            <div class="sidebar-actions">
+                <button class="btn btn-secondary btn-full" onclick="pollAllChannels(this)">
+                    <i class="fa-solid fa-rotate sync-icon"></i> Refresh All Feeds
+                </button>
+            </div>
+
+            <!-- Subscribed Channels List -->
+            <div class="channel-section">
+                <h3>Subscriptions ({{ channels|length }})</h3>
+                <ul class="channel-list">
+                    <li class="{% if not active_channel_id %}active{% endif %}">
+                        <a
+                            href="/?filter_type={{ active_filter }}{% if search_query %}&q={{ search_query }}{% endif %}">
+                            <i class="fa-solid fa-globe channel-icon"></i>
+                            <span class="channel-title-span">All Subscriptions</span>
+                        </a>
+                    </li>
+                    {% for channel in channels %}
+                    <li class="channel-item-row {% if active_channel_id == channel.channel_id %}active{% endif %}"
+                        data-channel-id="{{ channel.channel_id }}">
+                        <a
+                            href="/?channel_id={{ channel.channel_id }}&filter_type={{ active_filter }}{% if search_query %}&q={{ search_query }}{% endif %}">
+                            {% if channel.thumbnail_url %}
+                            <img src="{{ channel.thumbnail_url }}" alt="" class="channel-avatar">
+                            {% else %}
+                            <div class="channel-avatar-placeholder">
+                                {{ channel.title[0] | upper }}
+                            </div>
+                            {% endif %}
+                            <span class="channel-title-span" title="{{ channel.title }}">{{ channel.title }}</span>
+                        </a>
+                        <button class="btn-unsubscribe"
+                            onclick="confirmUnsubscribe(event, '{{ channel.channel_id }}', '{{ channel.title }}')"
+                            title="Unsubscribe">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header Filter Bar -->
+            <header class="content-header">
+                <div class="search-box">
+                    <form action="/" method="GET" class="search-form">
+                        {% if active_channel_id %}
+                        <input type="hidden" name="channel_id" value="{{ active_channel_id }}">
+                        {% endif %}
+                        <input type="hidden" name="filter_type" value="{{ active_filter }}">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" name="q" placeholder="Search videos..." value="{{ search_query }}">
+                        {% if search_query %}
+                        <a href="/?{% if active_channel_id %}channel_id={{ active_channel_id }}&{% endif %}filter_type={{ active_filter }}"
+                            class="search-clear" title="Clear Search">
+                            <i class="fa-solid fa-xmark"></i>
+                        </a>
+                        {% endif %}
+                    </form>
+                </div>
+
+                <div class="filter-pills">
+                    <a href="/?{% if active_channel_id %}channel_id={{ active_channel_id }}&{% endif %}filter_type=unwatched{% if search_query %}&q={{ search_query }}{% endif %}"
+                        class="filter-pill {% if active_filter == 'unwatched' %}active{% endif %}">
+                        <i class="fa-solid fa-eye-slash"></i> Unwatched
+                    </a>
+                    <a href="/?{% if active_channel_id %}channel_id={{ active_channel_id }}&{% endif %}filter_type=bookmarked{% if search_query %}&q={{ search_query }}{% endif %}"
+                        class="filter-pill {% if active_filter == 'bookmarked' %}active{% endif %}">
+                        <i class="fa-solid fa-bookmark"></i> Bookmarks
+                    </a>
+                    <a href="/?{% if active_channel_id %}channel_id={{ active_channel_id }}&{% endif %}filter_type=all{% if search_query %}&q={{ search_query }}{% endif %}"
+                        class="filter-pill {% if active_filter == 'all' %}active{% endif %}">
+                        <i class="fa-solid fa-list"></i> All
+                    </a>
+                </div>
+            </header>
+
+            <!-- Video Grid -->
+            <section class="video-grid-container">
+                {% if videos|length == 0 %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-clapperboard empty-icon"></i>
+                    <h2>No videos found</h2>
+                    <p>No videos match your current filters or search parameters. Subscriptions poll automatically in
+                        the background!</p>
+                </div>
+                {% else %}
+                <div class="video-grid">
+                    {% for video in videos %}
+                    <article class="video-card" id="video-{{ video.video_id }}" data-video-id="{{ video.video_id }}">
+                        <div class="thumbnail-wrapper" onclick="watchVideo('{{ video.video_id }}')">
+                            <img src="{{ video.thumbnail_url }}" alt="{{ video.title }}" loading="lazy">
+                            <span class="play-overlay">
+                                <i class="fa-solid fa-play"></i>
+                            </span>
+                        </div>
+                        <div class="video-details">
+                            <span class="video-channel-tag">{{ video.channel.title if video.channel else "YouTube
+                                Channel" }}</span>
+                            <h3 class="video-title" title="{{ video.title }}"
+                                onclick="watchVideo('{{ video.video_id }}')">
+                                {{ video.title }}
+                            </h3>
+                            <p class="video-meta">
+                                <i class="fa-regular fa-clock"></i> {{ video.published_at.strftime('%b %d, %Y') }}
+                            </p>
+                            <div class="video-actions">
+                                <button class="action-btn watch-btn" onclick="watchVideo('{{ video.video_id }}')"
+                                    title="Watch Video">
+                                    <i class="fa-solid fa-play"></i> Watch
+                                </button>
+
+                                <button
+                                    class="action-btn toggle-watched-btn {% if video.is_watched %}watched{% endif %}"
+                                    onclick="toggleWatched('{{ video.video_id }}', this)"
+                                    title="{% if video.is_watched %}Mark Unwatched{% else %}Mark Watched{% endif %}">
+                                    <i
+                                        class="fa-solid {% if video.is_watched %}fa-eye{% else %}fa-eye-slash{% endif %}"></i>
+                                </button>
+
+                                <button
+                                    class="action-btn toggle-bookmark-btn {% if video.is_bookmarked %}bookmarked{% endif %}"
+                                    onclick="toggleBookmark('{{ video.video_id }}', this)"
+                                    title="{% if video.is_bookmarked %}Remove Bookmark{% else %}Bookmark{% endif %}">
+                                    <i class="fa-solid fa-bookmark"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+
+    <!-- Video Modal Player -->
+    <div id="video-modal" class="modal-overlay" onclick="closeVideoModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeVideoModal()"><i class="fa-solid fa-xmark"></i></button>
+            <div class="video-player-container">
+                <iframe id="youtube-player" src="" frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+            </div>
+            <h3 id="modal-video-title" class="modal-video-title">Video Title</h3>
+        </div>
+    </div>
+
+    <!-- Javascript Handlers -->
+    <script>
+        // Toast Notification System
+        function showToast(message, type = "success") {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = `toast toast-${type}`;
+
+            let icon = "fa-circle-check";
+            if (type === "error") icon = "fa-circle-exclamation";
+            if (type === "info") icon = "fa-circle-info";
+
+            toast.innerHTML = `
+                <i class="fa-solid ${icon}"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add("show");
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.remove("show");
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // Watch Video in Modal
+        function watchVideo(videoId) {
+            const modal = document.getElementById("video-modal");
+            const iframe = document.getElementById("youtube-player");
+            const titleEl = document.getElementById("modal-video-title");
+
+            const card = document.getElementById(`video-${videoId}`);
+            const title = card ? card.querySelector(".video-title").getAttribute("title") : "";
+
+            iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+            titleEl.textContent = title;
+            modal.classList.add("active");
+
+            // Automatically mark video as watched in background
+            const videoCard = document.getElementById(`video-${videoId}`);
+            if (videoCard) {
+                const watchedBtn = videoCard.querySelector(".toggle-watched-btn");
+                if (watchedBtn && !watchedBtn.classList.contains("watched")) {
+                    updateVideoState(videoId, { is_watched: true }, watchedBtn);
+                }
+            }
+        }
+
+        function closeVideoModal(e) {
+            const modal = document.getElementById("video-modal");
+            const iframe = document.getElementById("youtube-player");
+            iframe.src = "";
+            modal.classList.remove("active");
+        }
+
+        // Toggle Watched status via API
+        async function toggleWatched(videoId, btnElement) {
+            const currentlyWatched = btnElement.classList.contains("watched");
+            const nextState = !currentlyWatched;
+
+            btnElement.disabled = true;
+            const success = await updateVideoState(videoId, { is_watched: nextState }, btnElement);
+            btnElement.disabled = false;
+
+            if (success) {
+                // If the active filter is unwatched, fade out and remove card
+                const activeFilter = "{{ active_filter }}";
+                if (activeFilter === "unwatched" && nextState === true) {
+                    const card = document.getElementById(`video-${videoId}`);
+                    if (card) {
+                        card.style.transform = "scale(0.95)";
+                        card.style.opacity = "0";
+                        setTimeout(() => {
+                            card.remove();
+                            // Check if feed is empty now
+                            const grid = document.querySelector(".video-grid");
+                            if (grid && grid.children.length === 0) {
+                                location.reload();
+                            }
+                        }, 300);
+                    }
+                }
+            }
+        }
+
+        // Toggle Bookmark status via API
+        async function toggleBookmark(videoId, btnElement) {
+            const currentlyBookmarked = btnElement.classList.contains("bookmarked");
+            const nextState = !currentlyBookmarked;
+
+            btnElement.disabled = true;
+            const success = await updateVideoState(videoId, { is_bookmarked: nextState }, btnElement);
+            btnElement.disabled = false;
+
+            if (success) {
+                const activeFilter = "{{ active_filter }}";
+                if (activeFilter === "bookmarked" && nextState === false) {
+                    const card = document.getElementById(`video-${videoId}`);
+                    if (card) {
+                        card.style.transform = "scale(0.95)";
+                        card.style.opacity = "0";
+                        setTimeout(() => {
+                            card.remove();
+                            const grid = document.querySelector(".video-grid");
+                            if (grid && grid.children.length === 0) {
+                                location.reload();
+                            }
+                        }, 300);
+                    }
+                }
+            }
+        }
+
+        // Update video state fetch call
+        async function updateVideoState(videoId, data, btnElement) {
+            try {
+                const res = await fetch(`/api/videos/${videoId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    showToast(err.detail || "Failed to update video", "error");
+                    return false;
+                }
+
+                const updated = await res.json();
+
+                if (data.is_watched !== undefined) {
+                    if (updated.is_watched) {
+                        btnElement.classList.add("watched");
+                        btnElement.title = "Mark Unwatched";
+                        btnElement.innerHTML = '<i class="fa-solid fa-eye"></i>';
+                        showToast("Marked as watched");
+                    } else {
+                        btnElement.classList.remove("watched");
+                        btnElement.title = "Mark Watched";
+                        btnElement.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+                        showToast("Marked as unwatched", "info");
+                    }
+                }
+
+                if (data.is_bookmarked !== undefined) {
+                    if (updated.is_bookmarked) {
+                        btnElement.classList.add("bookmarked");
+                        btnElement.title = "Remove Bookmark";
+                        showToast("Added to bookmarks");
+                    } else {
+                        btnElement.classList.remove("bookmarked");
+                        btnElement.title = "Bookmark";
+                        showToast("Removed from bookmarks", "info");
+                    }
+                }
+                return true;
+            } catch (e) {
+                showToast("Connection error", "error");
+                return false;
+            }
+        }
+
+        // Subscribe to a new YouTube Channel
+        async function subscribeChannel(event) {
+            event.preventDefault();
+            const input = document.getElementById("channel-input");
+            const submitBtn = event.target.querySelector("button[type='submit']");
+
+            const value = input.value.trim();
+            if (!value) return;
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Subscribing...';
+
+            try {
+                const res = await fetch('/api/channels', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channel_id: value,
+                        title: "Channel",
+                        custom_url: "",
+                        thumbnail_url: "",
+                        description: ""
+                    })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    showToast(err.detail || "Failed to subscribe.", "error");
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Subscribe';
+                    return;
+                }
+
+                const channel = await res.json();
+                showToast(`Subscribed to ${channel.title}!`);
+                input.value = "";
+
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } catch (e) {
+                showToast("Connection error", "error");
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Subscribe';
+            }
+        }
+
+        // Force poll all channels
+        async function pollAllChannels(btn) {
+            btn.disabled = true;
+            const icon = btn.querySelector(".sync-icon");
+            icon.classList.add("fa-spin");
+
+            showToast("Polling RSS feeds...", "info");
+
+            try {
+                const res = await fetch('/api/channels/poll', { method: 'POST' });
+                if (!res.ok) {
+                    showToast("Failed to refresh feeds.", "error");
+                } else {
+                    const data = await res.json();
+                    showToast(`Refreshed. Added ${data.new_videos_count} new videos.`);
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1200);
+                }
+            } catch (e) {
+                showToast("Connection error", "error");
+            } finally {
+                btn.disabled = false;
+                icon.classList.remove("fa-spin");
+            }
+        }
+
+        // Confirm and unsubscribe
+        async function confirmUnsubscribe(e, channelId, title) {
+            e.stopPropagation();
+            e.preventDefault();
+
+            if (!confirm(`Are you sure you want to unsubscribe from '${title}'?`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/channels/${channelId}`, { method: 'DELETE' });
+                if (!res.ok) {
+                    const err = await res.json();
+                    showToast(err.detail || "Failed to unsubscribe.", "error");
+                    return;
+                }
+
+                showToast(`Unsubscribed from ${title}`);
+                const row = document.querySelector(`[data-channel-id="${channelId}"]`);
+                if (row) {
+                    row.style.transform = "translateX(-20px)";
+                    row.style.opacity = "0";
+                    setTimeout(() => {
+                        location.href = "/?filter_type={{ active_filter }}";
+                    }, 300);
+                } else {
+                    location.href = "/?filter_type={{ active_filter }}";
+                }
+            } catch (e) {
+                showToast("Connection error", "error");
+            }
+        }
+    </script>
+</body>
+
+</html>
