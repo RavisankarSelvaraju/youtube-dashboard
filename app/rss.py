@@ -151,9 +151,25 @@ def fetch_channel_feed(channel_id: str) -> Dict[str, Any]:
     root = ET.fromstring(xml_data)
 
 
-    # Title
-    title_node = root.find('feed:title', NAMESPACES)
-    title = title_node.text if title_node is not None else "Unknown Channel"
+        # Find author node first to get the true channel name
+    author_node = root.find('feed:author', NAMESPACES)
+    author_name = None
+    if author_node is not None:
+        name_node = author_node.find('feed:name', NAMESPACES)
+        if name_node is not None and name_node.text:
+            author_name = name_node.text.strip()
+
+    # Fall back to root title node if author name wasn't found
+    if not author_name:
+        title_node = root.find('feed:title', NAMESPACES)
+        author_name = title_node.text.strip() if title_node is not None else "Unknown Channel"
+
+    # Use extracted author_name for title
+    title = author_name
+
+    # # Title
+    # title_node = root.find('feed:title', NAMESPACES)
+    # title = title_node.text if title_node is not None else "Unknown Channel"
 
     # URL / Author URI
     custom_url = f"https://www.youtube.com/channel/{channel_id}"

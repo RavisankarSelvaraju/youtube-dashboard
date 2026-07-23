@@ -177,3 +177,20 @@ def update_video(
     if not video:
         raise HTTPException(status_code=404, detail="Video not found.")
     return video
+
+# app/routes.py
+from pydantic import BaseModel
+
+class ChannelUpdate(BaseModel):
+    title: str
+
+@router.patch("/api/channels/{channel_id}")
+def rename_channel(
+    channel_id: str,
+    payload: ChannelUpdate,
+    db: Session = Depends(database.get_db)
+):
+    channel = crud.update_channel_title(db, channel_id=channel_id, new_title=payload.title)
+    if not channel:
+        raise HTTPException(status_code=404, detail="Channel not found.")
+    return channel

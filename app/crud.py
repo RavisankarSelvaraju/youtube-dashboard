@@ -41,6 +41,13 @@ def delete_channel(db: Session, channel_id: str) -> bool:
         return True
     return False
 
+def update_channel_title(db: Session, channel_id: str, new_title: str) -> Optional[models.Channel]:
+    db_channel = db.query(models.Channel).filter(models.Channel.channel_id == channel_id).first()
+    if db_channel:
+        db_channel.title = new_title
+        db.commit()
+        db.refresh(db_channel)
+    return db_channel
 
 def update_channel_polled(db: Session, channel_id: str) -> Optional[models.Channel]:
     db_channel = db.query(models.Channel).filter(models.Channel.channel_id == channel_id).first()
