@@ -21,7 +21,11 @@ def poll_all_channels():
             if _stop_event.is_set():
                 break
             try:
+                # Inside poll_all_channels() in app/scheduler.py
                 feed_data = rss.fetch_channel_feed(channel.channel_id)
+                # Update title if current title is generic or missing
+                if feed_data.get("title") and feed_data["title"] != "Unknown Channel":
+                    crud.update_channel_title(db, channel.channel_id, feed_data["title"])
                 new_vids = crud.add_videos_if_not_exists(db, channel.channel_id, feed_data["videos"])
                 crud.update_channel_polled(db, channel.channel_id)
                 if len(new_vids) > 0:
