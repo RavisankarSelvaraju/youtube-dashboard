@@ -35,6 +35,7 @@ body {
     color: var(--color-text-main);
     font-family: var(--font-sans);
     height: 100vh;
+    height: 100dvh; /* Accounts for mobile browser toolbars */
     overflow: hidden;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
@@ -58,8 +59,7 @@ body {
 
 /* Layout container */
 .app-container {
-    display: grid;
-    grid-template-columns: 280px 1fr;
+    display: flex;
     height: 100vh;
     width: 100vw;
     overflow: hidden;
@@ -71,12 +71,35 @@ body {
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
+    flex-shrink: 0;
     height: 100%;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 1.5rem;
+    width: 280px;
+    min-width: 280px;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        padding 0.3s ease,
+        border-color 0.3s ease;
+}
+
+/* Desktop: header toggle button collapses the sidebar to width 0 */
+@media (min-width: 861px) {
+    body.sidebar-toggled .sidebar {
+        width: 0;
+        min-width: 0;
+        padding-left: 0;
+        padding-right: 0;
+        border-right-color: transparent;
+    }
 }
 
 .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
     margin-bottom: 2rem;
 }
 
@@ -197,6 +220,52 @@ body {
 .btn-secondary:hover {
     background-color: var(--bg-surface-hover);
     border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Sidebar toggle controls (visible at every breakpoint) */
+.mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--color-text-main);
+    cursor: pointer;
+    font-size: 1rem;
+    transition: var(--transition-smooth);
+}
+
+.mobile-menu-btn:hover {
+    background-color: var(--bg-surface-hover);
+}
+
+.sidebar-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: var(--transition-smooth);
+}
+
+.sidebar-close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.sidebar-backdrop {
+    display: none; /* only enabled in the mobile media query, where the sidebar overlays content */
 }
 
 /* Subscribed Channels section */
@@ -321,6 +390,8 @@ body {
 .main-content {
     display: flex;
     flex-direction: column;
+    flex: 1;
+    min-width: 0;
     height: 100vh;
     overflow: hidden;
     background-color: var(--bg-base);
@@ -419,6 +490,42 @@ body {
     box-shadow: 0 2px 8px rgba(255, 42, 95, 0.25);
 }
 
+/* Grid / List view toggle */
+.view-toggle {
+    display: flex;
+    gap: 0.25rem;
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 0.25rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.view-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: var(--transition-smooth);
+}
+
+.view-toggle-btn:hover {
+    color: var(--color-text-main);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.view-toggle-btn.active {
+    background-color: var(--color-primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(255, 42, 95, 0.25);
+}
+
 /* Video Grid layout */
 .video-grid-container {
     flex: 1;
@@ -430,6 +537,49 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.75rem;
+}
+
+/* List view: single-column rows with a fixed-size thumbnail */
+.video-grid.list-view {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.video-grid.list-view .video-card {
+    flex-direction: row;
+}
+
+.video-grid.list-view .video-card:hover {
+    transform: none;
+    background-color: var(--bg-surface-hover);
+}
+
+.video-grid.list-view .thumbnail-wrapper {
+    width: 220px;
+    min-width: 220px;
+    max-width: 220px;
+    padding-top: 0;
+    aspect-ratio: 16 / 9;
+}
+
+.video-grid.list-view .video-details {
+    padding: 0.85rem 1.25rem;
+    justify-content: center;
+}
+
+.video-grid.list-view .video-title {
+    -webkit-line-clamp: 1;
+    height: auto;
+    margin-bottom: 0.35rem;
+}
+
+.video-grid.list-view .video-meta {
+    margin-bottom: 0.75rem;
+}
+
+.video-grid.list-view .video-actions {
+    max-width: 320px;
 }
 
 /* Video Card details */
@@ -790,4 +940,146 @@ body {
 
 .toast-info i {
     color: #3b82f6;
+}
+
+/* ============================================================
+   Responsive / Mobile Layout
+   ============================================================ */
+@media (max-width: 860px) {
+    .app-container {
+        display: block;
+    }
+
+    /* Sidebar becomes an off-canvas drawer, hidden by default */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 280px;
+        min-width: 0;
+        max-width: 82vw;
+        z-index: 60;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow-lg);
+    }
+
+    body.sidebar-toggled .sidebar {
+        transform: translateX(0);
+    }
+
+    .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.6);
+        z-index: 55;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+
+    body.sidebar-toggled .sidebar-backdrop {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* Header bar wraps on narrow screens */
+    .content-header {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+
+    .search-box {
+        order: 2;
+        width: 100%;
+    }
+
+    .search-form input:focus {
+        width: 100%; /* Disable desktop expansion on mobile */
+    }
+
+    .filter-pills {
+        order: 3;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .filter-pill {
+        flex: 1;
+        justify-content: center;
+        padding: 0.4rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    /* Video grid tightens up */
+    .video-grid-container {
+        padding: 1rem;
+    }
+
+    .video-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+
+    .video-grid.list-view {
+        gap: 0.6rem;
+    }
+
+    .video-grid.list-view .thumbnail-wrapper {
+        width: 120px;
+        min-width: 120px;
+        max-width: 120px;
+    }
+
+    .video-grid.list-view .video-details {
+        padding: 0.6rem 0.75rem;
+    }
+
+    .video-grid.list-view .video-actions {
+        max-width: none;
+    }
+
+    /* Modal player fits small screens */
+    .modal-content {
+        width: 94%;
+        padding: 1rem;
+    }
+
+    .modal-video-title {
+        font-size: 1rem;
+    }
+
+    /* Toasts span the width instead of anchoring bottom-right */
+    #toast-container {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+    }
+
+    .toast {
+        min-width: 0;
+        width: 100%;
+        max-width: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .video-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-pill span {
+        display: none;
+    }
+
+    .filter-pill i {
+        font-size: 1rem;
+    }
+
+    .logo span {
+        font-size: 1.1rem;
+    }
 }

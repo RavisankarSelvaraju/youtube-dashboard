@@ -19,14 +19,20 @@
     <!-- Toast Notification Container -->
     <div id="toast-container"></div>
 
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="closeSidebar()"></div>
+
     <div class="app-container">
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
                     <i class="fa-brands fa-youtube logo-icon"></i>
                     <span>YouTube Dashboard</span>
                 </div>
+                <button class="sidebar-close-btn" onclick="closeSidebar()" aria-label="Close menu">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
 
             <!-- Add Channel Form -->
@@ -89,6 +95,9 @@
         <main class="main-content">
             <!-- Header Filter Bar -->
             <header class="content-header">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
                 <div class="search-box">
                     <form action="/" method="GET" class="search-form">
                         {% if active_channel_id %}
@@ -109,16 +118,27 @@
                 <div class="filter-pills">
                     <a href="/?{% if active_channel_id %}channel_id={{ active_channel_id }}&{% endif %}filter_type=unwatched{% if search_query %}&q={{ search_query }}{% endif %}"
                         class="filter-pill {% if active_filter == 'unwatched' %}active{% endif %}">
-                        <i class="fa-solid fa-eye-slash"></i> Unwatched
+                        <i class="fa-solid fa-eye-slash"></i> <span>Unwatched</span>
                     </a>
                     <a href="/?{% if active_channel_id %}channel_id={{ active_channel_id }}&{% endif %}filter_type=bookmarked{% if search_query %}&q={{ search_query }}{% endif %}"
                         class="filter-pill {% if active_filter == 'bookmarked' %}active{% endif %}">
-                        <i class="fa-solid fa-bookmark"></i> Bookmarks
+                        <i class="fa-solid fa-bookmark"></i> <span>Bookmarks</span>
                     </a>
                     <a href="/?{% if active_channel_id %}channel_id={{ active_channel_id }}&{% endif %}filter_type=all{% if search_query %}&q={{ search_query }}{% endif %}"
                         class="filter-pill {% if active_filter == 'all' %}active{% endif %}">
-                        <i class="fa-solid fa-list"></i> All
+                        <i class="fa-solid fa-list"></i> <span>All</span>
                     </a>
+                </div>
+
+                <div class="view-toggle" role="group" aria-label="Video display mode">
+                    <button type="button" class="view-toggle-btn" data-view="grid" onclick="setViewMode('grid')"
+                        title="Grid view">
+                        <i class="fa-solid fa-grip"></i>
+                    </button>
+                    <button type="button" class="view-toggle-btn" data-view="list" onclick="setViewMode('list')"
+                        title="List view">
+                        <i class="fa-solid fa-list-ul"></i>
+                    </button>
                 </div>
             </header>
 
@@ -196,6 +216,29 @@
 
     <!-- Javascript Handlers -->
     <script>
+        // Sidebar collapse/drawer toggle (desktop: collapses inline, mobile: opens as a drawer)
+        function toggleSidebar() {
+            document.body.classList.toggle("sidebar-toggled");
+        }
+
+        function closeSidebar() {
+            document.body.classList.remove("sidebar-toggled");
+        }
+
+        // Grid / List video view toggle (persisted across page loads)
+        function setViewMode(mode) {
+            const grid = document.querySelector(".video-grid");
+            if (grid) {
+                grid.classList.toggle("list-view", mode === "list");
+            }
+            document.querySelectorAll(".view-toggle-btn").forEach((btn) => {
+                btn.classList.toggle("active", btn.dataset.view === mode);
+            });
+            localStorage.setItem("videoViewMode", mode);
+        }
+
+        setViewMode(localStorage.getItem("videoViewMode") || "grid");
+
         // Toast Notification System
         function showToast(message, type = "success") {
             const container = document.getElementById("toast-container");
