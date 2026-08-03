@@ -9,11 +9,11 @@ if [ -f ./*/bin/activate ]; then
 else
  if [ -f ./requirements.txt ]; then
   echo "============================================================="
-  echo "[INFO] Creating a virtual env with name => $VENVNAME <= . . ."
+  echo "[INFO] Creating a virtual env with name >> $VENVNAME << . . ."
   echo "============================================================="
   python3 -m venv $VENVNAME 
   echo "===================================================="
-  echo "[INFO] Created a virtual env with name => $VENVNAME "
+  echo "[INFO] Virtual env with name >> $VENVNAME << created"
   echo "===================================================="
   source ./$VENVNAME/bin/activate
   pip install -r ./requirements.txt
