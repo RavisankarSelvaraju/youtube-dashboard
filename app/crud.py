@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from app import models, schemas
+from app import models, schemas, rss
 
 
 # Channel operations
@@ -86,8 +86,10 @@ def get_videos(
 def add_videos_if_not_exists(db: Session, channel_id: str, videos_data: List[Dict[str, Any]]) -> List[models.Video]:
     """
     Add up to 2 videos from the RSS feed to the database for this channel.
-    The feed data comes from the UULF (Videos-only) playlist so Shorts are
-    already excluded at the source.
+    The feed data comes from the UULF (Videos-only) playlist, but that
+    filtering isn't reliable (longer-format Shorts especially slip through),
+    so each new candidate is verified directly against YouTube via
+    rss.is_video_short() before being stored.
     """
     MAX_PER_CHANNEL = 2
 
@@ -101,6 +103,9 @@ def add_videos_if_not_exists(db: Session, channel_id: str, videos_data: List[Dic
         exists = db.query(models.Video).filter(models.Video.video_id == video["video_id"]).first()
         if exists:
             stored_count += 1
+            continue
+
+        if rss.is_video_short(video["video_id"]):
             continue
 
         db_video = models.Video(
@@ -161,6 +166,25 @@ def prune_videos_for_channel(db: Session, channel_id: str):
     if deleted_count > 0:
         db.commit()
         print(f"[Pruner] Deleted {deleted_count} old videos for channel {channel_id}.")
+
+
+def remove_misclassified_shorts(db: Session) -> int:
+    """
+    Scans every stored video and deletes any that are actually YouTube
+    Shorts, verified via rss.is_video_short(). Needed because the UULF
+    feed's Shorts filtering isn't perfect, so some Shorts get stored as
+    regular videos before this check existed / runs again.
+    """
+    removed = 0
+    for video in db.query(models.Video).all():
+        if rss.is_video_short(video.video_id):
+            db.delete(video)
+            removed += 1
+
+    if removed:
+        db.commit()
+
+    return removed
 
 
 def update_video_status(

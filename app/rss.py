@@ -115,9 +115,11 @@ def fetch_channel_feed(channel_id: str) -> Dict[str, Any]:
       - UULF{suffix}  → the "Videos" tab  (long-form videos ONLY, Shorts excluded)
       - UU{suffix}    → all uploads        (includes Shorts)
 
-    We always try the UULF feed first so that Shorts are filtered at the source
-    without needing any per-video HTTP checks.  If the UULF feed is empty or
-    unavailable we fall back to the full uploads feed.
+    We always try the UULF feed first since it excludes most Shorts at the
+    source, cutting down on the per-video is_video_short() checks callers
+    still need to do (YouTube's UULF filtering isn't perfect, especially for
+    longer-format Shorts). If the UULF feed is empty or unavailable we fall
+    back to the full uploads feed.
     """
     # Convert channel_id (UC...) → playlist id suffix (strip the "UC" prefix)
     suffix = channel_id[2:]  # 22-character suffix after "UC"

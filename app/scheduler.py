@@ -38,12 +38,16 @@ def poll_all_channels():
 
 def clean_existing_videos():
     """
-    On startup, prune every channel's video list to the 2 latest entries.
-    Shorts are now excluded at the feed (UULF playlist) level, so no per-video
-    HTTP scanning is needed here.
+    On startup, remove any stored videos that are actually Shorts (the UULF
+    feed's Shorts filtering isn't perfect) and prune every channel's video
+    list down to the 2 latest entries.
     """
     db = SessionLocal()
     try:
+        removed = crud.remove_misclassified_shorts(db)
+        if removed:
+            print(f"[Scheduler] Removed {removed} misclassified Shorts from the database.")
+
         channels = db.query(models.Channel).all()
         print(f"[Scheduler] Pruning videos to 2 latest per subscription for {len(channels)} channels...")
         for channel in channels:
