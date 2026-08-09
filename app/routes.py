@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 
 from app import crud, schemas, rss, database
+from app.config import settings
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -56,7 +57,8 @@ def dashboard_view(
             "videos": videos,
             "active_channel_id": channel_id,
             "active_filter": filter_type,
-            "search_query": q or ""
+            "search_query": q or "",
+            "base_path": settings.base_path
         }
     )
 

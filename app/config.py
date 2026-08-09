@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///./youtube_tracker.db")
     poll_interval: int = int(os.getenv("POLL_INTERVAL", "600"))  # in seconds
     app_title: str = "YouTube Subscription Tracker"
+    base_path: str = os.getenv("BASE_PATH", "")
 
     class Config:
         env_file = ".env"

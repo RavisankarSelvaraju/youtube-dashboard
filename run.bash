@@ -14,7 +14,7 @@ if [ -f ./*/bin/activate ]; then
             exit 0
         fi
 
-        tmux new-session -d -s "$SESSION" "python3 run.py"
+        tmux new-session -d -s "$SESSION" "BASE_PATH=/youtube-dashboard python3 run.py"
         echo "Started in tmux session '$SESSION'."
         echo "Attach with: tmux attach -t $SESSION"
     else

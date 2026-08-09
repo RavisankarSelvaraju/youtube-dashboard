@@ -122,6 +122,12 @@ body {
     -webkit-text-fill-color: transparent;
 }
 
+.suite-logo {
+    width: 1.6rem;
+    height: 1.6rem;
+    flex: none;
+}
+
 /* Subscription input box */
 .subscribe-box {
     background: rgba(255, 255, 255, 0.03);
