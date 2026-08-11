@@ -63,7 +63,7 @@
                 <ul class="channel-list">
                     <li class="{% if not active_channel_id %}active{% endif %}">
                         <a
-                            href="{{ base_path }}/?filter_type={{ active_filter }}{% if search_query %}&q={{ search_query }}{% endif %}">
+                            href="{{ base_path }}/?filter_type={{ active_filter | urlencode }}{% if search_query %}&q={{ search_query | urlencode }}{% endif %}">
                             <i class="fa-solid fa-globe channel-icon"></i>
                             <span class="channel-title-span">All Subscriptions</span>
                         </a>
@@ -72,7 +72,7 @@
                     <li class="channel-item-row {% if active_channel_id == channel.channel_id %}active{% endif %}"
                         data-channel-id="{{ channel.channel_id }}">
                         <a
-                            href="{{ base_path }}/?channel_id={{ channel.channel_id }}&filter_type={{ active_filter }}{% if search_query %}&q={{ search_query }}{% endif %}">
+                            href="{{ base_path }}/?channel_id={{ channel.channel_id | urlencode }}&filter_type={{ active_filter | urlencode }}{% if search_query %}&q={{ search_query | urlencode }}{% endif %}">
                             {% if channel.thumbnail_url %}
                             <img src="{{ channel.thumbnail_url }}" alt="" class="channel-avatar">
                             {% else %}
@@ -83,7 +83,9 @@
                             <span class="channel-title-span" title="{{ channel.title }}">{{ channel.title }}</span>
                         </a>
                         <button class="btn-unsubscribe"
-                            onclick="confirmUnsubscribe(event, '{{ channel.channel_id }}', '{{ channel.title }}')"
+                            data-channel-id="{{ channel.channel_id }}"
+                            data-channel-title="{{ channel.title }}"
+                            onclick="confirmUnsubscribe(event, this)"
                             title="Unsubscribe">
                             <i class="fa-solid fa-trash-can"></i>
                         </button>
@@ -109,7 +111,7 @@
                         <i class="fa-solid fa-magnifying-glass search-icon"></i>
                         <input type="text" name="q" placeholder="Search videos..." value="{{ search_query }}">
                         {% if search_query %}
-                        <a href="{{ base_path }}/?{% if active_channel_id %}channel_id={{ active_channel_id }}&{% endif %}filter_type={{ active_filter }}"
+                        <a href="{{ base_path }}/?{% if active_channel_id %}channel_id={{ active_channel_id | urlencode }}&{% endif %}filter_type={{ active_filter | urlencode }}"
                             class="search-clear" title="Clear Search">
                             <i class="fa-solid fa-xmark"></i>
                         </a>
@@ -118,15 +120,15 @@
                 </div>
 
                 <div class="filter-pills">
-                    <a href="{{ base_path }}/?{% if active_channel_id %}channel_id={{ active_channel_id }}&{% endif %}filter_type=unwatched{% if search_query %}&q={{ search_query }}{% endif %}"
+                    <a href="{{ base_path }}/?{% if active_channel_id %}channel_id={{ active_channel_id | urlencode }}&{% endif %}filter_type=unwatched{% if search_query %}&q={{ search_query | urlencode }}{% endif %}"
                         class="filter-pill {% if active_filter == 'unwatched' %}active{% endif %}">
                         <i class="fa-solid fa-eye-slash"></i> <span>Unwatched</span>
                     </a>
-                    <a href="{{ base_path }}/?{% if active_channel_id %}channel_id={{ active_channel_id }}&{% endif %}filter_type=bookmarked{% if search_query %}&q={{ search_query }}{% endif %}"
+                    <a href="{{ base_path }}/?{% if active_channel_id %}channel_id={{ active_channel_id | urlencode }}&{% endif %}filter_type=bookmarked{% if search_query %}&q={{ search_query | urlencode }}{% endif %}"
                         class="filter-pill {% if active_filter == 'bookmarked' %}active{% endif %}">
                         <i class="fa-solid fa-bookmark"></i> <span>Bookmarks</span>
                     </a>
-                    <a href="{{ base_path }}/?{% if active_channel_id %}channel_id={{ active_channel_id }}&{% endif %}filter_type=all{% if search_query %}&q={{ search_query }}{% endif %}"
+                    <a href="{{ base_path }}/?{% if active_channel_id %}channel_id={{ active_channel_id | urlencode }}&{% endif %}filter_type=all{% if search_query %}&q={{ search_query | urlencode }}{% endif %}"
                         class="filter-pill {% if active_filter == 'all' %}active{% endif %}">
                         <i class="fa-solid fa-list"></i> <span>All</span>
                     </a>
@@ -483,9 +485,12 @@
         }
 
         // Confirm and unsubscribe
-        async function confirmUnsubscribe(e, channelId, title) {
+        async function confirmUnsubscribe(e, btn) {
             e.stopPropagation();
             e.preventDefault();
+
+            const channelId = btn.dataset.channelId;
+            const title = btn.dataset.channelTitle;
 
             if (!confirm(`Are you sure you want to unsubscribe from '${title}'?`)) {
                 return;

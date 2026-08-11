@@ -80,7 +80,7 @@ def get_videos(
     if is_bookmarked is not None:
         query = query.filter(models.Video.is_bookmarked == is_bookmarked)
         
-    return query.order_by(desc(models.Video.published_at)).offset(skip).limit(limit).all()
+    return query.order_by(desc(models.Video.published_at), desc(models.Video.added_at)).offset(skip).limit(limit).all()
 
 
 def add_videos_if_not_exists(db: Session, channel_id: str, videos_data: List[Dict[str, Any]]) -> List[models.Video]:

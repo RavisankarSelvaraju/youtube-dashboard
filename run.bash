@@ -19,7 +19,7 @@ if [ -f ./*/bin/activate ]; then
         echo "Attach with: tmux attach -t $SESSION"
     else
         echo "tmux not found. Running in the current terminal..."
-        exec python3 run.py
+        exec env BASE_PATH=/youtube-dashboard python3 run.py
     fi
 else
     echo "Virtual environment does not exist. Run \`bash setup.bash\` first."
